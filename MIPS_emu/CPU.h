@@ -19,9 +19,10 @@ public:
 	CPU();
 	CPU(vector<uint32_t> program);
 	instruction decompile(uint32_t);
+	void step();
 	~CPU();
 private:
-	int _pc;
+	int _pc = 0;
 	vector<uint32_t> _program;
 	uint32_t _registers[32];
 };

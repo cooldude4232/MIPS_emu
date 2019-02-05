@@ -8,6 +8,32 @@ CPU::CPU()
 
 CPU::CPU(vector<uint32_t> program)
 {
+	_program = program;
+}
+
+void CPU::step()
+{
+	instruction inst;
+	inst = decompile(_program[_pc]);
+	switch (inst.opcode)
+	{
+	case 0x00:
+		switch (inst.funct)
+		{
+		//add signed
+		case 0x20:
+			_registers[inst.rd] = static_cast<signed>(_registers[inst.rt]) + static_cast<signed>(_registers[inst.rs]);
+			break;
+		//add unsigned
+		case 0x21:
+			_registers[inst.rd] = _registers[inst.rt] + _registers[inst.rs];
+			break;
+		}
+		break;
+	//add immediate
+	case 0x08:
+		_registers[inst.rt] = _registers[inst.rs] + inst.IMM;
+	}
 }
 
 //take in instruction and decompile into easy to use instruction struct
@@ -15,16 +41,25 @@ instruction CPU::decompile(uint32_t inst)
 {
 	instruction out;
 	//isolate left 6 bits
-	out.opcode == inst >> 26;
+	out.opcode = inst >> 26;
 	//isolate left 6 bits
-	out.opcode == inst >> 26;
+	out.opcode = inst >> 26;
 
 	//opcode of zero signifies R type
 	if (out.opcode == 0)
 	{
-
+		//get rs bits
+		out.rs = (inst << 6) >> 27;
+		//get rt bits
+		out.rt = (inst << 11) >> 27;
+		//get rd bits
+		out.rd = (inst << 16) >> 27;
+		//get shamt bits
+		out.shamt = (inst << 21) >> 27;
+		//get funct bits
+		out.funct = (inst << 26) >> 26;
 	}
-	//opcode of 3 or 4 signifies J type
+	//opcode of 2 or 3 signifies J type
 	else if ((out.opcode == 0x02) || (out.opcode == 0x03))
 	{
 
@@ -32,8 +67,15 @@ instruction CPU::decompile(uint32_t inst)
 	//all others signify I type
 	else
 	{
-
+		//get rs bits
+		out.rs = (inst << 6) >> 27;
+		//get rt bits
+		out.rt = (inst << 11) >> 27;
+		//get rd bits
+		out.IMM = (inst << 16) >> 16;
 	}
+
+	return out;
 }
 
 CPU::~CPU()

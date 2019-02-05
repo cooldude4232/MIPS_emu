@@ -22,6 +22,9 @@ int main()
 	CPU vCPU(program);
 
 	cout << "successfully read file!";
+
+	vCPU.step();
+
 	system("PAUSE");
 	return 0;
 }
@@ -66,6 +69,24 @@ vector<uint32_t> convertHex(ifstream &file)
 			type = 'R';
 			opcode = 0x00;
 			funct = 0x21;
+		}
+		else if (field == "and")
+		{
+			type = 'R';
+			opcode = 0x00;
+			funct = 0x24;
+		}
+		else if (field == "andi")
+		{
+			type = 'I';
+			opcode = 0x0C;
+			funct = 0x00;
+		}
+		else if (field == "beq")
+		{
+			type = 'I';
+			opcode = 0x04;
+			funct = 0x00;
 		}
 		//assume anything else is a function definition
 		else
