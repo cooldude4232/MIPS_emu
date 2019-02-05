@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="CPU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="MIPS_emu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MIPS_emu.cpp">
+    <ClCompile Include="CPU.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
