@@ -6,6 +6,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <time.h>
+#define $v0 2
+#define $v1 3
 using namespace std;
 
 vector<uint32_t> convertHex(ifstream &file);
@@ -20,12 +23,11 @@ int main()
 	program = convertHex(file);
 	//create a cpu object with our program
 	CPU vCPU(program);
+	clock_t tStart = clock();
+	while (vCPU.step());
 
-	cout << "successfully read file!";
-
-	vCPU.step();
-
-	vCPU.printRegisters();
+	cout << "end of program reached" << endl;
+	printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 
 	system("PAUSE");
 	return 0;
@@ -34,14 +36,41 @@ int main()
 vector<uint32_t> convertHex(ifstream &file)
 {
 	vector<uint32_t> program;
+	//vectors to store functions and the corresponding locations
+	vector<string> functions;
+	vector<uint32_t> functionLoc;
+	//for if instruction is branch or not
 
+	//remember what instructions are branches to link up later
+	vector<string> branches;
+	vector<uint32_t> branchLoc;
+
+	//track where we are when reading the program to link up jumps
+	uint32_t pc = 0;
 	uint8_t opcode;
 	char type;
 	uint8_t funct;
 
 	string t;
+
 	while (getline(file, t))
 	{
+		bool offset = false;
+		bool isBranch = false;
+		//replace commas with spaces
+		for (int i = 0; i < t.length(); i++)
+		{
+			if (t[i] == ',')
+			{
+				t[i] = ' ';
+			}
+			if((t[i] == '(') || (t[i] == ')'))
+			{
+				offset = true;
+				t[i] = ' ';
+			}
+		}
+
 		istringstream inst(t);
 
 		string field;
@@ -89,24 +118,28 @@ vector<uint32_t> convertHex(ifstream &file)
 			type = 'I';
 			opcode = 0x04;
 			funct = 0x00;
+			isBranch = true;
 		}
 		else if (field == "blez")
 		{
 			type = 'I';
 			opcode = 0x06;
 			funct = 0x00;
+			isBranch = true;
 		}
 		else if (field == "bne")
 		{
 			type = 'I';
 			opcode = 0x05;
 			funct = 0x00;
+			isBranch = true;
 		}
 		else if (field == "bgtz")
 		{
 			type = 'I';
 			opcode = 0x07;
 			funct = 0x00;
+			isBranch = true;
 		}
 		else if (field == "div")
 		{
@@ -114,15 +147,81 @@ vector<uint32_t> convertHex(ifstream &file)
 			opcode = 0x00;
 			funct = 0x1A;
 		}
+		else if (field == "divu")
+		{
+			type = 'R';
+			opcode = 0x00;
+			funct = 0x1B;
+		}
+		else if (field == "j")
+		{
+			type = 'J';
+			opcode = 0x00;
+			funct = 0x1B;
+		}
+		else if (field == "syscall")
+		{
+			//syscall is special
+			type = 'N';
+			funct = 0x0C;
+			uint32_t instruction = 0;
+			instruction += funct;
+			program.push_back(instruction);
+		}
+		else if (field == "ori")
+		{
+			type = 'I';
+			opcode = 0x0D;
+			funct = 0x00;
+		}
+		else if (field == "or")
+		{
+			type = 'R';
+			opcode = 0x00;
+			funct = 0x25;
+		}
+		else if (field == "sw")
+		{
+		type = 'I';
+		opcode = 0x2B;
+		funct = 0x00;
+		}
+		else if (field == "lw")
+		{
+		type = 'I';
+		opcode = 0x23;
+		funct = 0x00;
+		}
+		else if (field == "sub")
+		{
+		type = 'R';
+		opcode = 0x00;
+		funct = 0x22;
+		}
 		//assume anything else is a function definition
 		else
 		{
-
+			//set type to none
+			type = 'N';
+			//if not comment
+			if (field[0] != '#') {
+				//if there is a colon
+				if (field.back() == ':')
+				{
+					field.pop_back();
+				}
+				//store in an array to link up later
+				functions.push_back(field);
+				functionLoc.push_back(pc);
+				//subtract from the counter and don't count as an instruction
+			}
+			pc--;
 		}
 
 		//switch for the type
 		if (type == 'R')
 		{
+
 			inst >> field;
 			uint8_t rd = convertRegister(field);
 			inst >> field;
@@ -145,8 +244,12 @@ vector<uint32_t> convertHex(ifstream &file)
 			//optional fields
 			if (inst >> field)
 			{
-				uint8_t shamt = stoi(field);
-				instruction += (shamt << 6);
+				//check if comment
+				if ((field[0] != ';') || (field[0] != '#'))
+				{
+					uint8_t shamt = stoi(field);
+					instruction += (shamt << 6);
+				}
 			}
 
 			instruction += funct;
@@ -156,14 +259,24 @@ vector<uint32_t> convertHex(ifstream &file)
 		}
 		else if (type == 'I')
 		{
+			uint8_t rs;
+			uint16_t IMM;
 			inst >> field;
 			uint8_t rt = convertRegister(field);
+			if (offset)
+			{
+				inst >> field;
+				IMM = stoi(field);
+			}
 			inst >> field;
-			uint8_t rs = convertRegister(field);
+			rs = convertRegister(field);
+			
 			inst >> field;
-			uint16_t IMM = stoi(field);
-
-
+			
+			if (!isBranch && !offset)
+			{
+				IMM = stoi(field);
+			}
 			uint32_t instruction = 0;
 
 			instruction += (opcode << 26);
@@ -172,17 +285,51 @@ vector<uint32_t> convertHex(ifstream &file)
 
 			instruction += (rt << 16);
 
-			instruction += IMM;
+			if (offset)
+			{
+				instruction += IMM;
+			}
+
+			if (isBranch)
+			{
+				branches.push_back(field);
+				branchLoc.push_back(pc);
+			}
+			else
+			{
+				instruction += IMM;
+			}
 
 			//add the instruction to our program
 			program.push_back(instruction);
 		}
 		else if (type == 'J')
 		{
+			uint32_t instruction = 0;
+			instruction += (opcode << 26);
+			inst >> field;
+			uint32_t address;
+			address = stoi(field);
+			instruction += address;
+		}
 
+		//advance the counter
+		pc++;
+	}
+	//link up function branches
+	for (int i = 0; i < branches.size(); i++)
+	{
+		//go through each branch location and replace with our function locations
+		for (int j = 0; j < functions.size(); j++)
+		{
+			//if the branch function matches the function list
+			if (branches[i] == functions[j])
+			{
+				//if it matches replace with relaative jump
+				program[branchLoc[i]] += static_cast<uint16_t>(functionLoc[j] - branchLoc[i]);
+			}
 		}
 	}
-	
 
 	return program;
 }

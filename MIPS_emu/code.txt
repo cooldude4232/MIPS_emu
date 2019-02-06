@@ -1,1 +1,9 @@
-addi $s1, $s2, -100
+ori $s3,100
+ori $v0,1
+loop:
+# comment
+addi $s1,$s1,4
+or $a0,$s1,$zero
+sw $s1 0($s1)
+syscall
+bne $s1, $s3, loop

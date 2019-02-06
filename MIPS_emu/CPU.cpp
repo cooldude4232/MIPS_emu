@@ -11,7 +11,7 @@ CPU::CPU(vector<uint32_t> program)
 	_program = program;
 }
 
-void CPU::step()
+bool CPU::step()
 {
 	instruction inst;
 	inst = decompile(_program[_pc]);
@@ -28,11 +28,53 @@ void CPU::step()
 		case 0x21:
 			_registers[inst.rd] = static_cast<unsigned>(_registers[inst.rt]) + static_cast<unsigned>(_registers[inst.rs]);
 			break;
+		//sub
+		case 0x22:
+			_registers[inst.rd] = _registers[inst.rt] - _registers[inst.rs];
+			break;
+		//bitwise or
+		case 0x25:
+			_registers[inst.rd] = _registers[inst.rt] | _registers[inst.rs];
+			break;
+		//syscall logic, depends on value in $v0 register
+		case 0x0C:
+			switch (_registers[$v0])
+			{
+				case 1:
+					cout << _registers[$a0] << endl;
+					break;
+			}
+			break;
 		}
+		break;
+	
+	//branch if not equal
+	case 0x05:
+		if (_registers[inst.rs] != _registers[inst.rt])
+			_pc += static_cast<signed>(inst.IMM) - 1; //-1 to negate the pc increment
 		break;
 	//add immediate signed
 	case 0x08:
 		_registers[inst.rt] = _registers[inst.rs] + inst.IMM;
+		break;
+	//or immediate
+	case 0x0D:
+		_registers[inst.rt] = _registers[inst.rs] | inst.IMM;
+		break;
+	//store word
+	case 0x2B:
+		_ram[inst.IMM/4 + _registers[inst.rs]/4] = _registers[inst.rt];
+		break;
+	case 0x23:
+		_registers[inst.rt] = _ram[inst.IMM / 4 + _registers[inst.rt] / 4];
+		break;
+	}
+	
+	//increment program counter
+	_pc++;
+	if (_pc >= _program.size())
+	{
+		return false;
 	}
 }
 
