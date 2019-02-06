@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <iostream>
 using namespace std;
 
 struct instruction {
@@ -7,9 +8,9 @@ struct instruction {
 	uint8_t rs;
 	uint8_t rt;
 	uint8_t rd;
-	uint8_t shamt;
+	int8_t shamt;
 	uint8_t funct;
-	uint16_t IMM;
+	int16_t IMM;
 	uint32_t address;
 };
 
@@ -19,11 +20,12 @@ public:
 	CPU();
 	CPU(vector<uint32_t> program);
 	instruction decompile(uint32_t);
+	void printRegisters();
 	void step();
 	~CPU();
 private:
 	int _pc = 0;
 	vector<uint32_t> _program;
-	uint32_t _registers[32];
+	int32_t _registers[32];
 };
 

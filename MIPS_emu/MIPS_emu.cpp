@@ -25,6 +25,8 @@ int main()
 
 	vCPU.step();
 
+	vCPU.printRegisters();
+
 	system("PAUSE");
 	return 0;
 }
@@ -88,6 +90,30 @@ vector<uint32_t> convertHex(ifstream &file)
 			opcode = 0x04;
 			funct = 0x00;
 		}
+		else if (field == "blez")
+		{
+			type = 'I';
+			opcode = 0x06;
+			funct = 0x00;
+		}
+		else if (field == "bne")
+		{
+			type = 'I';
+			opcode = 0x05;
+			funct = 0x00;
+		}
+		else if (field == "bgtz")
+		{
+			type = 'I';
+			opcode = 0x07;
+			funct = 0x00;
+		}
+		else if (field == "div")
+		{
+			type = 'R';
+			opcode = 0x00;
+			funct = 0x1A;
+		}
 		//assume anything else is a function definition
 		else
 		{
@@ -135,7 +161,7 @@ vector<uint32_t> convertHex(ifstream &file)
 			inst >> field;
 			uint8_t rs = convertRegister(field);
 			inst >> field;
-			uint8_t IMM = convertRegister(field);
+			uint16_t IMM = stoi(field);
 
 
 			uint32_t instruction = 0;
